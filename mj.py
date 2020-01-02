@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-#import shanten
+import shanten
 
 class Game:
     def __init__(self,virtual=True):
@@ -19,14 +19,19 @@ class Game:
         if self.virtual:
 
             self.haipai()
-
+            
+            flag = False
             while not(selt.taku.yama.empty):
                 #ツモ
                 self.tsumo()
                 
                 #ツモアガリ
-                self.agari()
-                
+                if self.agari():
+                    break
+
+                #暗槓
+                self.ankan()
+
                 #打牌
                 self.dahai()
                 
@@ -50,7 +55,7 @@ class Game:
             
         self.end_game()
     
-    #勝利プレイヤーを渡す。点数計算もここで行う
+    #勝利プレイヤーをwinnerslistの最後としてidで渡す。点数計算もここで行う
     def end_game(self):
         #点数計算 
         self.calculate()
@@ -92,17 +97,53 @@ class Game:
             pass
         
     def agari(self):
-        if self.virtual:
-            if self.players[0].shanten() == -1 and not(self.players[0].friten()):
+        if self.players[0].is_cpu:
+            pass
+        else:
+            if self.virtual:
+                if self.players[0].shanten()[0] == -1 and not(self.players[0].friten()):
+                    while True:
+                        print('agaru? yes/no')
+                        if input() == 'yes':
+                            self.winners.append(self.players[0].id)
+                            return True
+                        elif input() == 'no':
+                            return False
+                else:
+                    return False
+            else:
                 pass
-        else:
-            pass
     
+    def ankan(self):
+        if self.players[0].is_cpu:
+            pass:
+        else:
+            if self.virtual:
+                if self.players[0].tehai.last(1).values[0] in self.players[0].tehai.value_counts()[self.players[0].tehai.value_counts()==4]:
+                    while True:
+                        print('ankansuru? yes/no')
+                        if input() == 'yes':
+                            self.
+                            break
+                        elif input() == 'no':
+                            break
+            else:
+                pass
+
     def dahai(self):
-        if self.virtual:
+        if self.players[0].is_cpu:
             pass
         else:
-            pass
+            if self.virtual:
+                print(self.players[0].tehai)
+                print('select sutehai by id')
+                while True:
+                    sutehai = self.players[0].tehai[self.players[0].tehai.index == int(input())]
+                    if not sutehai.empty and sutehai.index.values[0] not in self.players[0].nakihai.index.values:
+                        self.players[0].kawa = pd.concat([self.players[0].kawa,sutehai])
+                        break
+            else:
+                pass
         
     def ron(self):
         if self.virtual:
@@ -121,7 +162,7 @@ class Game:
         #東4局
         if self.taku.kyoku == 4:
             #流局していてかつ親が聴牌もしていない
-            if self.winners[-1]==5 and self.oya().shanten() != 0:
+            if self.winners[-1]==5 and self.oya().shanten()[0] != 0:
                 return True
             #親以外が勝利
             elif not(self.winners[-1] == self.oya().id):
@@ -136,7 +177,7 @@ class Game:
         #連荘かどうかによって処理を変える
         if self.winners[-1] == self.oya().id:
             self.taku.renchan +=1 
-        elif self.winners[-1] == 5 and self.oya().shanten() == 0:
+        elif self.winners[-1] == 5 and self.oya().shanten()[0] == 0:
             self.taku.renchan +=1
         else:
             self.taku.renchan = 0
@@ -193,10 +234,10 @@ class Taku:
 class Player:
     def __init__(self,ID=0,cha=''):
         self.id = ID
-        self.tehai = []
-        self.nakihai = []
+        self.tehai = pd.Series([])
+        self.nakihai = pd.Series([])
         self.naki = 0
-        self.kawa = []
+        self.kawa = pd.Series([])
         self.cha = cha
         self.score = 20000
         self.riti = False
@@ -206,15 +247,47 @@ class Player:
         self.cha = {'E':'S','S':'W','W':'N','N':'E'}[self.cha]
     
     def next_game(self):
-        self.tehai = []
-        self.kawa = []
+        self.tehai = pd.Series([])
+        self.kawa = pd.Series([])
         
     # 0で聴牌。-1でアガリ
     def shanten(self):
-        kokusi = 10; titoi=10; normal=10 
-        return min(kokusi,titoi,normal)
-    
-    def 
+        kokushi = 13; titoi=6; normal=8
+        
+        kokushi_te = self.tehai.isin(['1p','9p','1w','9w','1s','9s','1j','2j','3j','4j','5j','6j','7j'])
+        kokushi -= kokushi_te.value_counts().shape[0] + min(1, kokushi_te.value_counts()[kokushi_te.value_counts() >= 2].shape[0])
+
+        titoi -= self.tehai.value_counts()[self.tehai.value_counts() >= 2].shape[0] + max(0,(7-self.tehai.value_counts().shape[0]))
+
+        normal_li = []
+        for i in ['p','w','s']:
+            ind = 0
+            for j in self.tehai[self.tehai.str.contains(i)].values:
+                ind += 5**(8-(int(j[0])-1))
+            normal_li.append(shanten.table[ind])
+        j = self.tehai[self.tehai.str.contains('j')].value_counts()
+        men = []; toi = []
+        for i in j[j==3].index:
+            men.append([i[0],i[0],i[0]])
+        for i in j[j==2].index:
+            toi.append([i[0],i[0]])
+        normal_li.append([[j[j==3].shape[0],men],[j[j==2].shape[0],toi],[j[j==2].shape[0],toi]])
+
+        m = 0;m2 = 0;m3 = 0
+        for i in normal_li:
+            m += i[0][0]
+            m2 += i[2][0]
+            if i[2][0] >= 1:
+                for j in i[2][1]:
+                    if j[0] == j[1]:
+                        m3 = 1
+        if not(m2 >= (4-m)+1 and m3 == 1):
+            m3 = 0
+        m2 = min(4-m, m2)
+        normal -= 2*m + m2 + m3
+        return min(kokushi,titoi,normal), normal_li
 
     def friten(self):
+        if self.tehai.tail(1).values[0] in self.kawa:
+            return True
         return False

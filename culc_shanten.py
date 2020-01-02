@@ -33,23 +33,6 @@ ex) [[[000,123,333],[]],[]]
 """
 
 #その手牌での面子数と具体的な面子を返してくれる関数
-"""
-def mentsu_n(tehai, mentsu):
-    print(tehai)
-    if np.any(tehai<=-1):
-        return -1
-    tmp = []
-    for i in range(len(mentsu)):
-        tehai[mentsu[i][0]] -=1 
-        tehai[mentsu[i][1]] -=1 
-        tehai[mentsu[i][2]] -=1
-        #その面子を引いてみた上での面子数
-        tmp.append(mentsu_n(tehai, mentsu))
-        tehai[mentsu[i][0]] +=1 
-        tehai[mentsu[i][1]] +=1 
-        tehai[mentsu[i][2]] +=1
-    return max(tmp) + 1
-"""
 #その手牌での面子数と具体的な面子を返してくれる関数
 # [2,[]]
 def mentsu_n(tehai, mentsu):
@@ -90,26 +73,6 @@ def tatsu_n(tehai, tatsu):
             tehai[tatsu[i][0]] +=1 
             tehai[tatsu[i][1]] +=1 
     return [max(tmp)+1,ta[np.argmax(tmp)]]
-
-"""
-def toitsu_n(tehai, tatsu, toitsu):
-    tmp = [-1]
-    ta = [[]]
-    for i in range(len(toitsu)):
-        tehai[toitsu[i][0]] -= 1
-        tehai[toitsu[i][1]] -= 1
-        if np.any(tehai<=-1):
-            tehai[toitsu[i][0]] +=1
-            tehai[toitsu[i][1]] +=1
-        else:
-            ans = tatsu_n(tehai, tatsu)
-            ans[1].append(toitsu[i])
-            tmp.append(ans[0])
-            ta.append(ans[1])
-            tehai[toitsu[i][0]] +=1
-            tehai[toitsu[i][1]] +=1
-    return [max(tmp)+1,ta[np.argmax(tmp)]]
-"""
 
 f = open('./shanten.py', mode='w')
 f.write('table = [')
